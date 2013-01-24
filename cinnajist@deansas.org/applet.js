@@ -54,23 +54,50 @@ MyApplet.prototype = {
 
 	on_applet_clicked: function(event)
 	{
-		this.refresh_gists();
 		this._menu.toggle();
+		this.refresh_gists();
 	},
 
 	refresh_gists: function ()
 	{
 		this._get_request(GIST_LIST_URL, function(gists)
 			{
-				log("got the gists");
-				gists.foreach_element(function(arr, index, node)
+				log("removing all from menu");
+				this._menu.removeAll();
+
+				gists.foreach_element(Lang.bind(this, function(arr, index, node)
 					{
-						log(node.get_object().get_string_member('description'));
-						log(node.get_object().get_string_member('url'));
-						log(node.get_object().get_object_member('user').get_string_member('login'));
-						// Stuff login and descripton into a menu button and on click open up a web browser
-					});
+						log("Iterating results");
+						var description, url, user, menuText;
+
+						description = node.get_object().get_string_member('description');
+						url = node.get_object().get_string_member('url');
+						user = node.get_object().get_object_member('user').get_string_member('login');
+
+						// Stuff login and description into a menu button and on click open up a web browser
+						menuText = user + ": " + description.substr(0, 30);
+
+						this._addBrowserButton(menuText, url);
+					}));
 			});
+	},
+
+	/**
+	 * Adds a button to the menu that opens up a web browser with the url
+	 * menuText:	String - The button text
+	 * url:			String - The URL that the browser should go to
+	 */
+	_addBrowserButton: function(menuText, url)
+	{
+		var menuItem, _onClick = function (event)
+			{
+				GLib.spawn_command_line_async("xdg-open " + url);
+			};
+
+		menuItem = new PopupMenu.PopupMenuItem(menuText);
+		menuItem.connect('activate', _onClick);
+		log("adding button to menu " + menuText);
+		this._menu.addMenuItem(menuItem);
 	},
 
 	/**
